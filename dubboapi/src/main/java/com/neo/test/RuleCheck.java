@@ -11,9 +11,9 @@ public class RuleCheck {
         data.put("abc", "123");
         data.put("ef", "456");
         data.put("ec", "45");
-        data.put("yu", "87a");
+        data.put("yu", "87ab");
 
-        String test = "(abc=123 and ef=456 or (ec=45)) and (yu=87)";
+        String test = "(abc=123 and ef=456 or (ec=45)) and (yu=87.*b)";
         if (isLegal(test)) {
             String booleanStr = switchToBoolean(test, data);
             System.out.println(booleanStr);
@@ -24,16 +24,34 @@ public class RuleCheck {
     }
 
     private static String switchToBoolean(String source, Map<String, String> data) {
-        Pattern pattern = Pattern.compile("([a-zA-Z0-9])+=([a-zA-Z0-9])+");
+        Pattern pattern = Pattern.compile("([a-zA-Z0-9])+=([a-zA-Z0-9*.])+");
         Matcher matcher = pattern.matcher(source);
         while (matcher.find()) {
             String[] kv = matcher.group().split("=");
-            source = matcher.replaceFirst(kv[1].equals(data.get(kv[0])) ? "1" : "0");
+            source = matcher.replaceFirst(kv[1].equals(data.get(kv[0])) || isRegxAndMatch(kv[1], data.get(kv[0])) ? "1" : "0");
             matcher = pattern.matcher(source);
         }
 
         source = source.toLowerCase().replace("and", "*").replace("or", "+");
         return source;
+    }
+
+    private static boolean isRegxAndMatch(String source, String data) {
+        String target = "$*().+[?\\^{}";
+        boolean isReg = false;
+        for (Character c : source.toCharArray()) {
+            if (target.contains(c.toString())) {
+                isReg = true;
+            }
+        }
+
+        if (!isReg) {
+            return false;
+        }
+
+        Pattern pattern = Pattern.compile(source);
+        Matcher matcher = pattern.matcher(data);
+        return matcher.matches();
     }
 
     private static boolean isLegal(String source) {
